@@ -749,6 +749,8 @@ impl FacetedDocidsExtractor {
                         let lat_meta = new_fields_ids_map.metadata(lat_fid).unwrap();
                         let lng_meta = new_fields_ids_map.metadata(lng_fid).unwrap();
 
+                        eprintln!("docid: {external_id} -> lat: {lat}, lng: {lng}");
+
                         add(lat_fid, lat_meta, perm_json_p::Depth::OnBaseKey, &lat.into())?;
                         add(lng_fid, lng_meta, perm_json_p::Depth::OnBaseKey, &lng.into())?;
                     }

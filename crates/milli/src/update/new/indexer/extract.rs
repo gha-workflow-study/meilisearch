@@ -339,6 +339,7 @@ where
             IndexingStep::WritingGeoJson,
         )?;
     }
+
     indexing_context.progress.update_progress(IndexingStep::WaitingForDatabaseWrites);
     finished_extraction.store(true, Ordering::Relaxed);
 
@@ -410,6 +411,10 @@ where
                 &rtxn,
                 extractor_sender.facet_docids(),
             )?;
+
+            // TODO do this correctly
+            // let bitmap = [0, 1].iter().collect();
+            // extractor_sender.geo().set_geo_faceted(&bitmap)?;
         }
     }
 
@@ -594,6 +599,63 @@ where
                 extractor_sender.embeddings().embedding_status(&config.name, infos).unwrap();
             }
         }
+    }
+
+    'geo: {
+        let Some(extractor) = GeoExtractor::new(&rtxn, index, *indexing_context.grenad_parameters)?
+        else {
+            break 'geo;
+        };
+        let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
+
+        let caches = {
+            let span = tracing::trace_span!(target: "indexing::documents::extract", "geo");
+            let _entered = span.enter();
+            
+            GeoExtractor::run_extraction_from_settings(
+                settings_delta,
+                &documents,
+                indexing_context,
+                extractor_allocs,
+                IndexingStep::WritingGeoPoints,
+            )?
+
+            settings_change_extract(
+                &documents,
+                &extractor,
+                indexing_context,
+                extractor_allocs,
+                &datastore,
+            )?;
+        };
+
+        merge_and_send_rtree(
+            datastore,
+            &rtxn,
+            index,
+            extractor_sender.geo(),
+            &indexing_context.must_stop_processing,
+        )?;
+    }
+
+    'cellulite: {
+        let Some(extractor) = GeoJsonExtractor::new(&rtxn, index, extractor_sender.geojson())?
+        else {
+            break 'cellulite;
+        };
+        let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
+
+        let span = tracing::trace_span!(target: "indexing::documents::extract", "cellulite");
+        let _entered = span.enter();
+
+        settings_change_extract(
+            &documents,
+            &extractor,
+            indexing_context,
+            extractor_allocs,
+            &datastore,
+            IndexingStep::WritingGeoJson,
+        )?;
     }
 
     indexing_context.progress.update_progress(IndexingStep::WaitingForDatabaseWrites);
