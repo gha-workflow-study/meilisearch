@@ -411,10 +411,6 @@ where
                 &rtxn,
                 extractor_sender.facet_docids(),
             )?;
-
-            // TODO do this correctly
-            // let bitmap = [0, 1].iter().collect();
-            // extractor_sender.geo().set_geo_faceted(&bitmap)?;
         }
     }
 
@@ -602,11 +598,9 @@ where
     }
 
     'geo: {
-        let Some(_extractor) =
-            GeoExtractor::new(&rtxn, index, *indexing_context.grenad_parameters)?
-        else {
+        if settings_delta.old_geo_fields_ids() == settings_delta.new_geo_fields_ids() {
             break 'geo;
-        };
+        }
 
         let caches = {
             let span = tracing::trace_span!(target: "indexing::documents::extract", "geo");
@@ -630,24 +624,7 @@ where
     }
 
     // 'cellulite: {
-    //     let Some(extractor) = GeoJsonExtractor::new(&rtxn, index, extractor_sender.geojson())?
-    //     else {
-    //         break 'cellulite;
-    //     };
-    //     let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
-
-    //     let span = tracing::trace_span!(target: "indexing::documents::extract", "cellulite");
-    //     let _entered = span.enter();
-
-    //     // TODO
-    //     settings_change_extract(
-    //         &documents,
-    //         &extractor,
-    //         indexing_context,
-    //         extractor_allocs,
-    //         &datastore,
-    //         IndexingStep::WritingGeoJson,
-    //     )?;
+    // TODO move the geo JSON extraction here
     // }
 
     indexing_context.progress.update_progress(IndexingStep::WaitingForDatabaseWrites);
