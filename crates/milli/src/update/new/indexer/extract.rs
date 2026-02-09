@@ -602,35 +602,26 @@ where
     }
 
     'geo: {
-        let Some(extractor) = GeoExtractor::new(&rtxn, index, *indexing_context.grenad_parameters)?
+        let Some(_extractor) =
+            GeoExtractor::new(&rtxn, index, *indexing_context.grenad_parameters)?
         else {
             break 'geo;
         };
-        let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
 
         let caches = {
             let span = tracing::trace_span!(target: "indexing::documents::extract", "geo");
             let _entered = span.enter();
-            
+
             GeoExtractor::run_extraction_from_settings(
-                settings_delta,
                 &documents,
                 indexing_context,
                 extractor_allocs,
                 IndexingStep::WritingGeoPoints,
             )?
-
-            settings_change_extract(
-                &documents,
-                &extractor,
-                indexing_context,
-                extractor_allocs,
-                &datastore,
-            )?;
         };
 
         merge_and_send_rtree(
-            datastore,
+            caches,
             &rtxn,
             index,
             extractor_sender.geo(),
@@ -638,25 +629,26 @@ where
         )?;
     }
 
-    'cellulite: {
-        let Some(extractor) = GeoJsonExtractor::new(&rtxn, index, extractor_sender.geojson())?
-        else {
-            break 'cellulite;
-        };
-        let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
+    // 'cellulite: {
+    //     let Some(extractor) = GeoJsonExtractor::new(&rtxn, index, extractor_sender.geojson())?
+    //     else {
+    //         break 'cellulite;
+    //     };
+    //     let datastore = ThreadLocal::with_capacity(rayon::current_num_threads());
 
-        let span = tracing::trace_span!(target: "indexing::documents::extract", "cellulite");
-        let _entered = span.enter();
+    //     let span = tracing::trace_span!(target: "indexing::documents::extract", "cellulite");
+    //     let _entered = span.enter();
 
-        settings_change_extract(
-            &documents,
-            &extractor,
-            indexing_context,
-            extractor_allocs,
-            &datastore,
-            IndexingStep::WritingGeoJson,
-        )?;
-    }
+    //     // TODO
+    //     settings_change_extract(
+    //         &documents,
+    //         &extractor,
+    //         indexing_context,
+    //         extractor_allocs,
+    //         &datastore,
+    //         IndexingStep::WritingGeoJson,
+    //     )?;
+    // }
 
     indexing_context.progress.update_progress(IndexingStep::WaitingForDatabaseWrites);
     finished_extraction.store(true, Ordering::Relaxed);

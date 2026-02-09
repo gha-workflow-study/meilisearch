@@ -363,7 +363,9 @@ impl<'extractor, SD: SettingsDelta + Sync> SettingsChangeExtractor<'extractor>
 
 pub struct SettingsChangeWordPairProximityDocidsExtractors;
 
+// TODO put all of this in the original WordPairProximityDocidsExtractor struct
 impl SettingsChangeWordPairProximityDocidsExtractors {
+    // TODO and rename this run_extraction_from_settings
     pub fn run_extraction<'fid, 'indexer, 'index, 'extractor, SD, MSP>(
         settings_delta: &SD,
         documents: &'indexer DocumentsIndentifiers<'indexer>,

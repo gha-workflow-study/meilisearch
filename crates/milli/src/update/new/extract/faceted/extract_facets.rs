@@ -589,6 +589,7 @@ impl FacetedDocidsExtractor {
         let datastore = ThreadLocal::new();
         let extractor = FacetsSettingsExtractorsData {
             fid_docid_facet_sender,
+            // TODO move this extraction elsewhere, in its own extractor
             geojson_sender,
             max_memory_by_thread: indexing_context.grenad_parameters.max_memory_by_thread(),
             buckets: rayon::current_num_threads(),
